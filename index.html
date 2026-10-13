@@ -167,7 +167,6 @@ code{font-size:12px;background:#f5f5f5;padding:1px 4px}
   </div>
   <div class="row" style="margin-top:10px">
     <label class="toggle"><input id="exclude13" type="checkbox"> <span id="lbl-exclude13">排除 13+ 用户</span></label>
-    <label class="toggle" style="margin-left:16px"><input id="showTurns" type="checkbox" checked> <span id="lbl-show-turns">课均开口次数</span></label>
   </div>
   <div class="grid g4" style="margin-top:12px">
     <div><label class="k" id="lbl-start-date">开始日期 UTC</label><input id="startDate" type="date"></div>
@@ -18704,7 +18703,6 @@ tierMulti:"设备档位（可多选）",
 age:"用户年龄",
 ability:"英文能力",
 exclude13:"排除 13+ 用户",
-showTurns:"课均开口次数",
 startDate:"开始日期 UTC",
 startTime:"开始时间 UTC",
 endDate:"结束日期 UTC",
@@ -18982,7 +18980,6 @@ tierMulti:"Device tier (multi-select)",
 age:"Learner age",
 ability:"English ability",
 exclude13:"Exclude ages 13+",
-showTurns:"Avg. turns per class",
 startDate:"Start date UTC",
 startTime:"Start time UTC",
 endDate:"End date UTC",
@@ -19839,12 +19836,6 @@ const state = {
   age: "all",
   ability: "all",
   exclude13: false,
-  showTurns: (function(){
-    try {
-      const saved = localStorage.getItem("trial-board-show-turns");
-      return saved === null ? true : saved === "1";
-    } catch(e){ return true; }
-  })(),
   wrapupComplete: false,
   levelTab: "all",
   profileCountry: "马来西亚",
@@ -19903,7 +19894,6 @@ function renderControls(){
   document.getElementById("lbl-age").textContent = t("age");
   document.getElementById("lbl-ability").textContent = t("ability");
   document.getElementById("lbl-exclude13").textContent = t("exclude13");
-  document.getElementById("lbl-show-turns").textContent = t("showTurns");
   document.getElementById("lbl-start-date").textContent = t("startDate");
   document.getElementById("lbl-start-time").textContent = t("startTime");
   document.getElementById("lbl-end-date").textContent = t("endDate");
@@ -19949,7 +19939,6 @@ function renderControls(){
     return `<option value="${s.value}" ${s.value===state.ability?"selected":""}>${esc(label)}</option>`;
   }).join("");
   document.getElementById("exclude13").checked = state.exclude13;
-  document.getElementById("showTurns").checked = state.showTurns;
   const minDate = DATA_START.split(" ")[0];
   const maxDate = DATA_END.split(" ")[0];
   const startDateEl = document.getElementById("startDate");
@@ -21496,7 +21485,7 @@ function render(){
     addSec("sec-age", t("secAge"), `<h2>${t("secAge")}</h2><div class="legend"><span><i class="dot" style="background:var(--ok)"></i>${t("coreLegend")}</span><span><i class="dot" style="background:var(--accent)"></i>${t("otherAges")}</span></div>${barChart(ageRows.map(([a])=>displayAge(a||"未知")), ageRows.map(([,m])=>rate(m)||0), true)}${tableHTML([t("ageCol"),t("started"),t("completed"),t("completion")], ageRows.map(([a,m])=>[displayAge(a||"年龄未知"),String(m.started),String(m.completed),rateText(m)]),1)}<p class="tiny">${useYearlyAge?t("ageAxisYear"):t("ageAxisBand")} ${esc(caption)}</p>`);
   }
 
-  if(state.showTurns){
+  {
     const turnLevelOk = row => selectedLevel===null || row.level===selectedLevel;
     const turnRows = focusBase.filter(row => FOCUS_COUNTRIES.some(c => c.name===row.country) && turnLevelOk(row));
     const allNow = focusBase.filter(turnLevelOk);
@@ -21747,11 +21736,6 @@ document.addEventListener("click", ()=>{
 document.getElementById("age").addEventListener("change", e=>{ state.age=e.target.value; render(); });
 document.getElementById("ability").addEventListener("change", e=>{ state.ability=e.target.value; render(); });
 document.getElementById("exclude13").addEventListener("change", e=>{ state.exclude13=e.target.checked; render(); });
-document.getElementById("showTurns").addEventListener("change", e=>{
-  state.showTurns = e.target.checked;
-  try { localStorage.setItem("trial-board-show-turns", e.target.checked ? "1" : "0"); } catch(err){}
-  render();
-});
 function normalizeTime(value){
   const text = String(value||"").trim();
   if(/^\d{2}:\d{2}:\d{2}$/.test(text)) return text;
