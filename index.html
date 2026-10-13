@@ -21620,10 +21620,20 @@ function render(){
       for(const l of replyLevels) replyTable.push(replyLine(l.label, packReply(replyRows.filter(row=>row.level===l.level))));
     }
     const replyAll = packReply(replyRows);
-    const replyRate = replyAll.spoken ? ((replyAll.now/replyAll.spoken)*100).toFixed(1)+"%" : "—";
+    const replyCard = (title, pack, info) => {
+      const rate = pack.spoken ? ((pack.now/pack.spoken)*100).toFixed(1)+"%" : "—";
+      return `<div class="stat${info?" info":""}"><div class="k">${title}</div><div class="v">${rate}</div><div class="k" style="margin-top:6px">${t("firstReplyCount",{now:pack.now,spoken:pack.spoken})}</div></div>`;
+    };
+    const replyLevelCards = replyLevels.map(l=>replyCard(
+      `${l.label} ${displayLessonName(l.name)}`,
+      packReply(replyRows.filter(row=>row.level===l.level))
+    )).join("");
     addSec("sec-first-reply", t("secFirstReply"), `
       <h2>${t("secFirstReply")}</h2>
-      <div class="stat" style="max-width:280px;margin-bottom:12px"><div class="k">${t("firstReplyNow")}</div><div class="v">${replyRate}</div><div class="k" style="margin-top:6px">${t("firstReplyCount",{now:replyAll.now,spoken:replyAll.spoken})}</div></div>
+      <div class="grid g5" style="margin-bottom:12px">
+        ${replyCard(t("firstReplyNow"), replyAll, true)}
+        ${replyLevelCards}
+      </div>
       ${tableHTML(["", t("firstReplySpoken"), t("firstReplyNow"), t("firstReplyLater"), t("firstReplyNone")], replyTable, 1)}
       <p class="tiny">${t("firstReplyNote")}${replyAll.silent ? " "+t("firstReplySilent",{n:replyAll.silent}) : ""} ${esc(caption)}</p>
     `);
