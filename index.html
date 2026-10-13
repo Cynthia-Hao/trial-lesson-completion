@@ -18906,7 +18906,7 @@ countryNote:"国家取课堂 trigger 事件 country 众数。",
 coreUsers:"5–8 岁用户",
 coreDone:"完课用户",
 coreClasses:"开课课堂 · {count}",
-coreShare:"占当前窗口开课量的百分比",
+coreShare:"5-8岁用户占总用户",
 coreUserRate:"用户完课率",
 coreClassRate:"课堂完课率",
 coreMom:"环比",
@@ -19185,7 +19185,7 @@ countryNote:"Country is the mode of the class trigger event country.",
 coreUsers:"Ages 5–8 learners",
 coreDone:"Completed learners",
 coreClasses:"Started classes · {count}",
-coreShare:"Share of current-window starts",
+coreShare:"Ages 5–8 share of learners",
 coreUserRate:"User completion",
 coreClassRate:"Class completion",
 coreMom:"vs previous",
@@ -20772,8 +20772,29 @@ function render(){
   const prevCoreDoneUsers = prevCoreUserList.filter(u=>u.done.size>0).length;
   const coreUserRate = coreUserList.length ? (coreDoneUsers/coreUserList.length)*100 : null;
   const prevCoreUserRate = prevCoreUserList.length ? (prevCoreDoneUsers/prevCoreUserList.length)*100 : null;
-  const coreShare = allInWindow.length ? (coreRows.length/allInWindow.length)*100 : null;
-  const prevCoreShare = prevInWindow.length ? (prevCoreRows.length/prevInWindow.length)*100 : null;
+  const countUsers = rows => {
+    const seen = new Set();
+    for(const row of rows) if(row.userKey) seen.add(row.userKey);
+    return seen.size;
+  };
+  const windowUserRows = CLASSES.filter(row =>
+    firstInWindow(row,rangeStart,rangeEnd)!==null &&
+    inCountries(row,state.countries) &&
+    inAbility(row,state.ability) &&
+    inTiers(row,state.tiers) &&
+    inAge(row,"all",state.exclude13)
+  );
+  const prevWindowUserRows = CLASSES.filter(row =>
+    firstInWindow(row,prevStart,prevEnd)!==null &&
+    inCountries(row,state.countries) &&
+    inAbility(row,state.ability) &&
+    inTiers(row,state.tiers) &&
+    inAge(row,"all",state.exclude13)
+  );
+  const totalUsers = countUsers(windowUserRows);
+  const prevTotalUsers = countUsers(prevWindowUserRows);
+  const coreShare = totalUsers ? (coreUserList.length/totalUsers)*100 : null;
+  const prevCoreShare = prevTotalUsers ? (prevCoreUserList.length/prevTotalUsers)*100 : null;
   const coreLevelUsers = {};
   for(const l of LEVELS){
     const users = coreUserList.filter(u=>u.levels.has(l.level));
@@ -21430,7 +21451,7 @@ function render(){
         <div class="stat info"><div class="k">${t("coreUsers")}</div><div class="v">${coreUserList.length}</div></div>
         <div class="stat"><div class="k">${t("coreDone")}</div><div class="v">${coreDoneUsers}</div><div class="k" style="margin-top:6px">${coreUserRate===null?"—":coreUserRate.toFixed(1)+"%"} · ${t("atLeastOneComplete")}</div>${cmpPercentHTML(coreUserRate, prevCoreUserRate)}</div>
         <div class="stat"><div class="k">${t("coreClasses", {count: countText(coreByLevel.all)})}</div><div class="v">${rateText(coreByLevel.all)}</div>${cmpHTML(coreByLevel.all, prevCoreByLevel.all)}</div>
-        <div class="stat"><div class="k">${t("coreShare")}</div><div class="v">${coreShare===null?"—":coreShare.toFixed(1)+"%"}</div><div class="k" style="margin-top:6px">${coreRows.length}/${allInWindow.length} ${t("classes")}</div>${cmpPercentHTML(coreShare, prevCoreShare)}</div>
+        <div class="stat"><div class="k">${t("coreShare")}</div><div class="v">${coreShare===null?"—":coreShare.toFixed(1)+"%"}</div><div class="k" style="margin-top:6px">${coreUserList.length}/${totalUsers} ${t("users")}</div>${cmpPercentHTML(coreShare, prevCoreShare)}</div>
       </div>
       ${barChart(LEVELS.map(l=>l.label), LEVELS.map(l=>rate(coreByLevel[l.level])||0))}
       ${tableHTML(
