@@ -18905,10 +18905,11 @@ coreClasses:"开课课堂 · {count}",
 coreShare:"占当前窗口开课量的百分比",
 coreUserRate:"用户完课率",
 coreClassRate:"课堂完课率",
+coreMom:"环比",
 coreAbilityTitle:"5–8 岁用户的英文能力",
 coreAbilityShare:"占 5–8 岁用户",
 coreAbilityLevel:"各 Level × 英文能力",
-coreNote:"核心年龄=Onboarding 单岁 5 / 6 / 7 / 8；旧口径只有年龄段时计入 6–8，3–5 无法拆出 5 岁，不计入。用户按独立 user 去重，一人上了多个 Level 会分别计入各 Level。课堂完课率与上方同一口径。右下角和表格括号是相对上一等长窗口的百分点，绿色为上升，红色为下降。不受上方「用户年龄」下拉影响，随国家、英文能力、设备档位和「排除 13+」重算。",
+coreNote:"核心年龄=Onboarding 单岁 5 / 6 / 7 / 8；旧口径只有年龄段时计入 6–8，3–5 无法拆出 5 岁，不计入。用户按独立 user 去重，一人上了多个 Level 会分别计入各 Level。课堂完课率与上方同一口径。右下角和表格「环比」列是相对上一等长窗口的百分点，绿色为上升，红色为下降。不受上方「用户年龄」下拉影响，随国家、英文能力、设备档位和「排除 13+」重算。",
 coreLegend:"核心年龄 5 / 6 / 7 / 8，以及旧口径 6–8",
 otherAges:"其他年龄",
 ageAxisYear:"横轴：Onboarding 年龄（9/14 起按单岁 + 13+ 细拆）；纵轴：课堂完课率（%）。绿色柱是核心年龄。此窗口起点在 9/14 及以后，按每年一档。仍看到 3–5 / 6–8 / 9–12 的，是改版前填的旧口径。",
@@ -19181,10 +19182,11 @@ coreClasses:"Started classes · {count}",
 coreShare:"Share of current-window starts",
 coreUserRate:"User completion",
 coreClassRate:"Class completion",
+coreMom:"vs previous",
 coreAbilityTitle:"English ability of ages 5–8",
 coreAbilityShare:"Share of ages 5–8",
 coreAbilityLevel:"Each level × English ability",
-coreNote:"Core age = Onboarding single-year 5 / 6 / 7 / 8; the old band still counts 6–8. 3–5 cannot isolate age 5, so it is excluded. Learners are distinct users; one person in multiple levels is counted in each. Class completion uses the same definition as above. The corner and the parentheses in the table are percentage points versus the previous window of the same length; green is up, red is down. Ignores the age filter; recalculates with country, ability, tier, and “exclude 13+”.",
+coreNote:"Core age = Onboarding single-year 5 / 6 / 7 / 8; the old band still counts 6–8. 3–5 cannot isolate age 5, so it is excluded. Learners are distinct users; one person in multiple levels is counted in each. Class completion uses the same definition as above. The corner and the “vs previous” column are percentage points versus the previous window of the same length; green is up, red is down. Ignores the age filter; recalculates with country, ability, tier, and “exclude 13+”.",
 coreLegend:"Core ages 5 / 6 / 7 / 8, plus old-band 6–8",
 otherAges:"Other ages",
 ageAxisYear:"X-axis: Onboarding age (from Sep 14, single year + 13+); Y-axis: class completion (%). Green bars are core ages. This window starts on/after Sep 14, so each year is its own row. 3–5 / 6–8 / 9–12 still appearing are the pre-change bands.",
@@ -19443,12 +19445,11 @@ function cmpPercentHTML(curr, prev){
   const delta = d===null ? "—" : (d>0?"+":"")+d.toFixed(1)+"pp";
   return `<div class="cmp">${t("prev")} ${prev.toFixed(1)}%<span class="${cls}">${delta}</span></div>`;
 }
-function rateWithPp(curr, prev){
-  const base = curr===null || Number.isNaN(curr) ? "—" : curr.toFixed(1)+"%";
-  if(prev===null || Number.isNaN(prev) || curr===null || Number.isNaN(curr)) return base;
+function ppCell(curr, prev){
+  if(curr===null || Number.isNaN(curr) || prev===null || Number.isNaN(prev)) return "—";
   const d = Number((curr-prev).toFixed(1));
   const cls = d>0 ? "delta-up" : d<0 ? "delta-down" : "";
-  return `${base}（<span class="${cls}">${(d>0?"+":"")+d.toFixed(1)}pp</span>）`;
+  return `<span class="${cls}">${(d>0?"+":"")+d.toFixed(1)}pp</span>`;
 }
 function makeLevelMetrics(){ return {1:emptyMetric(),2:emptyMetric(),3:emptyMetric(),4:emptyMetric(),all:emptyMetric()}; }
 function addLevel(metrics, level, completed){
@@ -20756,11 +20757,6 @@ function render(){
   });
   const prevCoreUserList = [...prevCoreUsers.values()];
   const prevCoreDoneUsers = prevCoreUserList.filter(u=>u.done.size>0).length;
-  const prevCoreLevelUsers = {};
-  for(const l of LEVELS){
-    const users = prevCoreUserList.filter(u=>u.levels.has(l.level));
-    prevCoreLevelUsers[l.level] = {users: users.length, done: users.filter(u=>u.done.has(l.level)).length};
-  }
   const coreUserRate = coreUserList.length ? (coreDoneUsers/coreUserList.length)*100 : null;
   const prevCoreUserRate = prevCoreUserList.length ? (prevCoreDoneUsers/prevCoreUserList.length)*100 : null;
   const coreShare = allInWindow.length ? (coreRows.length/allInWindow.length)*100 : null;
@@ -21425,25 +21421,26 @@ function render(){
       </div>
       ${barChart(LEVELS.map(l=>l.label), LEVELS.map(l=>rate(coreByLevel[l.level])||0))}
       ${tableHTML(
-        ["Level",t("lesson"),t("users"),t("doneUsers"),t("coreUserRate"),t("started"),t("completed"),t("coreClassRate")],
+        ["Level",t("lesson"),t("users"),t("doneUsers"),t("coreUserRate"),t("started"),t("completed"),t("coreClassRate"),t("coreMom")],
         LEVELS.map(l=>{
           const u = coreLevelUsers[l.level];
-          const pu = prevCoreLevelUsers[l.level];
           const userRate = u.users ? (u.done/u.users)*100 : null;
-          const prevUserRate = pu.users ? (pu.done/pu.users)*100 : null;
+          const classRate = rate(coreByLevel[l.level]);
+          const prevClassRate = rate(prevCoreByLevel[l.level]);
           return [
             l.label,
             displayLessonName(l.name),
             String(u.users),
             String(u.done),
-            rateWithPp(userRate, prevUserRate),
+            userRate===null ? "—" : userRate.toFixed(1)+"%",
             String(coreByLevel[l.level].started),
             String(coreByLevel[l.level].completed),
-            rateWithPp(rate(coreByLevel[l.level]), rate(prevCoreByLevel[l.level])),
+            classRate===null ? "—" : classRate.toFixed(1)+"%",
+            ppCell(classRate, prevClassRate),
           ];
         }),
         2,
-        4
+        8
       )}
       <h3>${t("coreAbilityTitle")}</h3>
       ${coreAbilityRows.length ? barChart(coreAbilityRows.map(([a])=>displayAbilityName(a)), coreAbilityRows.map(([,n])=>coreUserList.length?Number(((n/coreUserList.length)*100).toFixed(1)):0)) : ""}
