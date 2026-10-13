@@ -26,6 +26,8 @@ h3{font-size:14px;margin:18px 0 8px}
 .g3{grid-template-columns:1.2fr 1fr 1fr}
 .g4{grid-template-columns:repeat(4,1fr)}
 .g5{grid-template-columns:repeat(5,1fr)}
+.g6{grid-template-columns:repeat(6,1fr)}
+.turns-rate{color:#b5b5b5;font-size:11px;font-weight:400;line-height:1.3;margin-top:2px}
 .g1{grid-template-columns:1fr}
 .g2{grid-template-columns:1fr 1.4fr}
 .funnel-pair{grid-template-columns:1fr 1fr}
@@ -18777,9 +18779,11 @@ secAge:"各年龄段整体完课率",
 secAbility:"英文能力完课率",
 secTurns:"马来 / 越南 / 韩国 / 沙特 / 日本 · 分 Level 课均开口次数",
 turnsAll:"整体",
+turnsAllCountries:"所有国家",
 turnsN:"{n} 节课",
 turnsNone:"无开课",
-turnsNote:"课均开口次数 = 该组开课 class_id 的学生开口次数合计 ÷ 开课节数。无论是否完课都计入。学生向 AI 老师开口一次计 1，Dino 助教通道不计；没有开口、或仓库没有对话的课记 0。柱状图纵轴是课均开口次数。表格单元格是课均 · 开课节数。只看马来西亚、越南、韩国、沙特阿拉伯、日本。随 UTC 时间窗、Level、用户年龄、英文能力、设备档位和「排除 13+」重算，不受上方人群国家下拉影响。",
+turnsRate:"完课 {rate}%",
+turnsNote:"课均开口次数 = 该组开课 class_id 的学生开口次数合计 ÷ 开课节数。无论是否完课都计入。学生向 AI 老师开口一次计 1，Dino 助教通道不计；没有开口、或仓库没有对话的课记 0。最左侧是所有国家。右下角是课均开口相对上一等长窗口的增减。灰色小字是该组完课率。柱状图纵轴是课均开口次数。表格单元格是课均 · 开课节数。随 UTC 时间窗、Level、用户年龄、英文能力、设备档位和「排除 13+」重算，不受上方人群国家下拉影响。",
 secAgeAbility:"年龄 × 英文能力",
 secDevice:"设备档位 x 完课率",
 secHwRate:"课程与课后练习",
@@ -19053,9 +19057,11 @@ secAge:"Overall completion by age",
 secAbility:"Completion by English ability",
 secTurns:"Malaysia / Vietnam / Korea / Saudi / Japan · turns per class by level",
 turnsAll:"Overall",
+turnsAllCountries:"All countries",
 turnsN:"{n} classes",
 turnsNone:"No classes",
-turnsNote:"Average turns = total student utterances ÷ started classes. Incomplete classes stay in the denominator. One utterance to the AI teacher counts as 1. Dino assistant turns are not included. A class with no student speech, or no stored dialogue, counts as 0. The bars use average turns, not a percentage. Each table cell is the average · started classes. Malaysia, Vietnam, Korea, Saudi Arabia, and Japan only. Recalculates with the UTC window, level, age, ability, device tier, and “exclude 13+”; ignores the country filter above.",
+turnsRate:"{rate}% complete",
+turnsNote:"Average turns = total student utterances ÷ started classes. Incomplete classes stay in the denominator. One utterance to the AI teacher counts as 1. Dino assistant turns are not included. A class with no student speech, or no stored dialogue, counts as 0. All countries sit on the left. The corner is the change in average turns versus the previous window of the same length. The gray text is that group’s completion rate. The bars use average turns, not a percentage. Each table cell is the average · started classes. Recalculates with the UTC window, level, age, ability, device tier, and “exclude 13+”; ignores the country filter above.",
 secAgeAbility:"Age × English ability",
 secDevice:"Device tier × completion",
 secHwRate:"Course and homework",
@@ -19437,6 +19443,13 @@ function prevCmpText(curr, prev){
 }
 function cmpHTML(curr, prev){
   return cmpPercentHTML(rate(curr), rate(prev));
+}
+function cmpTurnsHTML(curr, prev){
+  if(!prev) return `<div class="cmp">${t("prev")} —</div>`;
+  const d = !curr ? null : Number((curr.avg-prev.avg).toFixed(1));
+  const cls = d===null || d===0 ? "" : d>0 ? " up" : " down";
+  const delta = d===null ? "—" : (d>0?"+":"")+d.toFixed(1);
+  return `<div class="cmp">${t("prev")} ${prev.avg.toFixed(1)}<span class="${cls}">${delta}</span></div>`;
 }
 function cmpPercentHTML(curr, prev){
   if(prev===null || Number.isNaN(prev)) return `<div class="cmp">${t("prev")} —</div>`;
@@ -21463,46 +21476,75 @@ function render(){
   }
 
   if(state.showTurns){
-    const turnRows = focusBase.filter(row => FOCUS_COUNTRIES.some(c => c.name===row.country) && (selectedLevel===null || row.level===selectedLevel));
+    const turnLevelOk = row => selectedLevel===null || row.level===selectedLevel;
+    const turnRows = focusBase.filter(row => FOCUS_COUNTRIES.some(c => c.name===row.country) && turnLevelOk(row));
+    const allNow = focusBase.filter(turnLevelOk);
     const buckets = {};
+    const allByLevel = {1:[], 2:[], 3:[], 4:[]};
     for(const c of FOCUS_COUNTRIES) buckets[c.name] = {all:[], 1:[], 2:[], 3:[], 4:[]};
+    for(const row of focusBase){
+      if(allByLevel[row.level]) allByLevel[row.level].push(row);
+    }
     for(const row of turnRows){
       const bucket = buckets[row.country];
       if(!bucket) continue;
       bucket.all.push(row);
       if(bucket[row.level]) bucket[row.level].push(row);
     }
-    const packTurns = rows => {
+    const prevBuckets = {};
+    for(const c of FOCUS_COUNTRIES) prevBuckets[c.name] = [];
+    const prevAll = [];
+    for(const row of CLASSES){
+      if(firstInWindow(row, prevStart, prevEnd)===null) continue;
+      if(!inAge(row, state.age, state.exclude13) || !inAbility(row, state.ability) || !inTiers(row, state.tiers)) continue;
+      if(!turnLevelOk(row)) continue;
+      prevAll.push(row);
+      if(prevBuckets[row.country]) prevBuckets[row.country].push(row);
+    }
+    const packTurns = (rows, end) => {
       if(!rows.length) return null;
-      const sum = rows.reduce((acc, row)=>acc+(row.studentTurns||0), 0);
-      return {avg: sum/rows.length, n: rows.length};
+      let sum = 0, done = 0;
+      for(const row of rows){
+        sum += row.studentTurns || 0;
+        if(isCompleted(row, end, state.wrapupComplete)) done += 1;
+      }
+      return {avg: sum/rows.length, n: rows.length, rate: Number(((done/rows.length)*100).toFixed(1))};
     };
-    const turnCell = packRow => packRow ? `${packRow.avg.toFixed(1)} · ${packRow.n}` : "—";
+    const turnCell = packRow => packRow ? `${packRow.avg.toFixed(1)} · ${packRow.n}<div class="turns-rate">${t("turnsRate", {rate: packRow.rate.toFixed(1)})}</div>` : "—";
     const levelRows = selectedLevel===null ? LEVELS : LEVELS.filter(l=>l.level===selectedLevel);
     const tableRows = [];
-    if(levelRows.length>1) tableRows.push([t("turnsAll"), ...FOCUS_COUNTRIES.map(c=>turnCell(packTurns(buckets[c.name].all)))]);
-    for(const l of levelRows) tableRows.push([l.label, ...FOCUS_COUNTRIES.map(c=>turnCell(packTurns(buckets[c.name][l.level])))]);
+    const rowPacks = level => [
+      turnCell(packTurns(level==="all" ? focusBase.filter(turnLevelOk) : allByLevel[level], rangeEnd)),
+      ...FOCUS_COUNTRIES.map(c=>turnCell(packTurns(level==="all" ? buckets[c.name].all : buckets[c.name][level], rangeEnd))),
+    ];
+    if(levelRows.length>1) tableRows.push([t("turnsAll"), ...rowPacks("all")]);
+    for(const l of levelRows) tableRows.push([l.label, ...rowPacks(l.level)]);
     const cardLabel = selectedLevel ? `L${selectedLevel}` : t("turnsAll");
+    const turnCard = (title, now, prev) => `<div class="stat"><div class="k">${title}</div><div class="v">${now?now.avg.toFixed(1):"—"}</div><div class="k" style="margin-top:6px">${now?t("turnsN",{n:now.n}):t("turnsNone")}</div>${now?`<div class="turns-rate">${t("turnsRate",{rate:now.rate.toFixed(1)})}</div>`:""}${cmpTurnsHTML(now, prev)}</div>`;
     addSec("sec-turns", t("secTurns"), `
       <h2>${t("secTurns")}</h2>
-      <div class="grid g5" style="margin-bottom:12px">
-        ${FOCUS_COUNTRIES.map(c=>{
-          const p = packTurns(buckets[c.name].all);
-          return `<div class="stat"><div class="k">${displayCountryShort(c.name)} · ${cardLabel}</div><div class="v">${p?p.avg.toFixed(1):"—"}</div><div class="k" style="margin-top:6px">${p?t("turnsN",{n:p.n}):t("turnsNone")}</div></div>`;
-        }).join("")}
+      <div class="grid g6" style="margin-bottom:12px">
+        ${turnCard(`${t("turnsAllCountries")} · ${cardLabel}`, packTurns(allNow, rangeEnd), packTurns(prevAll, prevEnd))}
+        ${FOCUS_COUNTRIES.map(c=>turnCard(`${displayCountryShort(c.name)} · ${cardLabel}`, packTurns(buckets[c.name].all, rangeEnd), packTurns(prevBuckets[c.name], prevEnd))).join("")}
       </div>
       ${levelRows.length>1 ? turnsGroupChart(
         levelRows.map(l=>l.label),
-        FOCUS_COUNTRIES.map(c=>({
-          name: displayCountryShort(c.name),
-          color: c.color,
-          data: levelRows.map(l=>{
-            const p = packTurns(buckets[c.name][l.level]);
+        [
+          {name:t("turnsAllCountries"), color:"#8e9aab", data:levelRows.map(l=>{
+            const p = packTurns(allByLevel[l.level], rangeEnd);
             return p ? p.avg : null;
-          }),
-        }))
+          })},
+          ...FOCUS_COUNTRIES.map(c=>({
+            name: displayCountryShort(c.name),
+            color: c.color,
+            data: levelRows.map(l=>{
+              const p = packTurns(buckets[c.name][l.level], rangeEnd);
+              return p ? p.avg : null;
+            }),
+          })),
+        ]
       ) : ""}
-      ${tableHTML(["", ...FOCUS_COUNTRIES.map(c=>displayCountryShort(c.name))], tableRows, 1)}
+      ${tableHTML(["", t("turnsAllCountries"), ...FOCUS_COUNTRIES.map(c=>displayCountryShort(c.name))], tableRows, 1, 1)}
       <p class="tiny">${t("turnsNote")} ${esc(caption)}</p>
     `);
   }
