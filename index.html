@@ -19188,6 +19188,7 @@ dinoHelpClicks:"点击量",
 dinoHelpUsers:"用户量",
 dinoHelpClasses:"课堂量",
 dinoHelpCell:"{clicks}次 （{users}人 · {classes}节课）",
+dinoHelpTotal:"合计 · 开课{n}节",
 dinoHelpShare:"占开课",
 dinoHelpOpenClicks:"Dino助手入口点击量",
 dinoHelpOpenUsers:"使用Dino助手用户量",
@@ -19498,6 +19499,7 @@ dinoHelpClicks:"Clicks",
 dinoHelpUsers:"Users",
 dinoHelpClasses:"Classes",
 dinoHelpCell:"{clicks} clicks ({users} users · {classes} classes)",
+dinoHelpTotal:"Total · {n} starts",
 dinoHelpShare:"Share of starts",
 dinoHelpOpenClicks:"Dino helper entry clicks",
 dinoHelpOpenUsers:"Users who used Dino helper",
@@ -21007,7 +21009,7 @@ function renderDinoHelpView(ctx){
     ${tableHTML(
       ["", t("dinoHelpOpen"), t("dinoHelpNext"), t("dinoHelpAsk"), t("dinoHelpFeedback")],
       [
-        [t("total")+" · "+started, usageCell(overall.open), usageCell(overall.next), usageCell(overall.ask), usageCell(overall.feedback)],
+        [t("dinoHelpTotal", {n: started}), usageCell(overall.open), usageCell(overall.next), usageCell(overall.ask), usageCell(overall.feedback)],
         ...LEVELS.filter(level=>!selectedLevel || level.level===selectedLevel).map(level=>{
           const rows = scoped.filter(row=>row.level===level.level);
           const pack = byLevel[level.level];
