@@ -21003,6 +21003,19 @@ function renderDinoHelpView(ctx){
       <div class="stat"><div class="k">${t("dinoHelpOpenClasses")}</div><div class="v">${overall.open.classes}</div></div>
       <div class="stat"><div class="k">${t("dinoHelpShare")}</div><div class="v">${helpShare(overall.open.classes, started)}</div></div>
     </div>
+    <div class="grid g4" style="margin-top:12px">
+      ${LEVELS.map(level=>{
+        const rows = allInWindow.filter(row=>row.level===level.level);
+        const open = helpUsage(rows, "helpOpen", rangeStart, rangeEnd);
+        return `<div class="stat">
+          <div class="k">${esc(level.label+" "+displayLessonName(level.name))}</div>
+          <div class="v">${open.clicks}</div>
+          <div class="k">${t("dinoHelpOpenClicks")}</div>
+          <div class="v" style="font-size:18px">${open.classes}</div>
+          <div class="k">${t("dinoHelpOpenClasses")}</div>
+        </div>`;
+      }).join("")}
+    </div>
     ${tableHTML(
       [t("dinoHelpAction"), t("dinoHelpClicks"), t("dinoHelpUsers"), t("dinoHelpClasses"), t("dinoHelpShare")],
       actions.map(([key,, label])=>[
