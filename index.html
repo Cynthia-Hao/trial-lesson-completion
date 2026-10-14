@@ -19187,6 +19187,7 @@ dinoHelpFeedback:"问题反馈",
 dinoHelpClicks:"点击量",
 dinoHelpUsers:"用户量",
 dinoHelpClasses:"课堂量",
+dinoHelpCell:"{clicks}次 （{users}人 · {classes}节课）",
 dinoHelpShare:"占开课",
 dinoHelpOpenClicks:"Dino助手入口点击量",
 dinoHelpOpenUsers:"使用Dino助手用户量",
@@ -19496,6 +19497,7 @@ dinoHelpFeedback:"Feedback",
 dinoHelpClicks:"Clicks",
 dinoHelpUsers:"Users",
 dinoHelpClasses:"Classes",
+dinoHelpCell:"{clicks} clicks ({users} users · {classes} classes)",
 dinoHelpShare:"Share of starts",
 dinoHelpOpenClicks:"Dino helper entry clicks",
 dinoHelpOpenUsers:"Users who used Dino helper",
@@ -20975,7 +20977,7 @@ function renderDinoHelpView(ctx){
     );
   }
   const started = scoped.length;
-  const usageCell = pack => `${pack.clicks} · ${pack.users} · ${pack.classes}`;
+  const usageCell = pack => t("dinoHelpCell", {clicks: pack.clicks, users: pack.users, classes: pack.classes});
   const nav = [];
   const sectionOrder = [];
   const sections = {};
