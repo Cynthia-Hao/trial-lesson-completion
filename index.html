@@ -59,6 +59,25 @@ input,select{width:100%;height:32px;border:1px solid #d5d5d5;padding:0 8px;font:
 .stat .cmp{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:baseline}
 .stat .cmp .up,.delta-up{color:var(--ok)}
 .stat .cmp .down,.delta-down{color:#b42318}
+/* Per-level Dino usage: aligned metrics, independent from other dashboard cards. */
+.dino-level-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 22px}
+.dino-level-card{--level-color:#3566bd;--level-tint:#edf3ff;min-width:0;border:1px solid #e2e8f0;border-top:3px solid var(--level-color);border-radius:14px;background:#fff;padding:18px 18px 20px;box-shadow:0 3px 12px rgba(25,45,75,.035)}
+.dino-level-card[data-level="2"]{--level-color:#16806d;--level-tint:#eaf7f2}
+.dino-level-card[data-level="3"]{--level-color:#7a59b5;--level-tint:#f3effb}
+.dino-level-card[data-level="4"]{--level-color:#a16c25;--level-tint:#fcf4e7}
+.dino-level-heading{display:flex;gap:10px;align-items:center;min-height:34px;margin-bottom:20px}
+.dino-level-badge{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:9px;background:var(--level-tint);color:var(--level-color);font-size:12px;font-weight:700;letter-spacing:.02em}
+.dino-level-name{margin:0;font-size:13px;line-height:1.4;font-weight:600;color:#40516a;overflow-wrap:anywhere}
+.dino-level-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0;padding-top:16px;border-top:1px solid #edf0f5}
+.dino-level-metric{min-width:0}
+.dino-level-metric+ .dino-level-metric{border-left:1px solid #e8edf3;padding-left:14px}
+.dino-level-metrics dt{font-size:11px;line-height:1.4;color:#738197;margin-bottom:8px}
+.dino-level-metrics dd{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin:0}
+.dino-level-number{font-size:clamp(25px,2.3vw,32px);line-height:1.1;font-weight:650;letter-spacing:-.04em;color:#24354c;font-variant-numeric:tabular-nums}
+.dino-level-metric:first-child .dino-level-number{color:var(--level-color)}
+.dino-level-unit{font-size:11px;color:#7c8899;font-weight:400;white-space:nowrap}
+@media(max-width:1080px){.dino-level-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dino-level-number{font-size:30px}}
+@media(max-width:580px){.dino-level-grid{grid-template-columns:1fr;gap:12px}.dino-level-card{padding:16px}.dino-level-heading{margin-bottom:14px}.dino-level-metrics{padding-top:14px}}
 .callout{padding:10px 12px;font-size:13px;line-height:1.55;margin:12px 0;border:1px solid}
 .callout.info{background:var(--info);border-color:var(--infob)}
 .callout.warn{background:var(--warnbg);border-color:var(--warnb)}
@@ -21143,17 +21162,26 @@ function renderDinoHelpView(ctx){
       <div class="stat"><div class="k">${t("dinoHelpAvgUser")}</div><div class="v">${helpAvg(overall.open.clicks, overall.open.users)}</div></div>
       <div class="stat"><div class="k">${t("dinoHelpAvgClass")}</div><div class="v">${helpAvg(overall.open.clicks, overall.open.classes)}</div></div>
     </div>
-    <div class="grid g4" style="margin-top:12px">
+    <div class="dino-level-grid">
       ${LEVELS.map(level=>{
         const rows = allInWindow.filter(row=>row.level===level.level);
         const open = helpUsage(rows, "helpOpen", rangeStart, rangeEnd);
-        return `<div class="stat">
-          <div class="k">${esc(level.label+" "+displayLessonName(level.name))}</div>
-          <div class="v">${open.clicks}</div>
-          <div class="k">${t("dinoHelpOpenClicks")}</div>
-          <div class="v" style="font-size:18px">${open.classes}</div>
-          <div class="k">${t("dinoHelpOpenClasses")}</div>
-        </div>`;
+        return `<article class="dino-level-card" data-level="${level.level}" aria-label="${esc(level.label+" "+displayLessonName(level.name))}">
+          <header class="dino-level-heading">
+            <span class="dino-level-badge">${esc(level.label)}</span>
+            <h3 class="dino-level-name">${esc(displayLessonName(level.name))}</h3>
+          </header>
+          <dl class="dino-level-metrics">
+            <div class="dino-level-metric">
+              <dt title="${esc(t("dinoHelpOpenClicks"))}">${isEn()?"Entry clicks":"入口点击"}</dt>
+              <dd><span class="dino-level-number">${open.clicks.toLocaleString(isEn()?"en-US":"zh-CN")}</span><span class="dino-level-unit">${isEn()?"times":"次"}</span></dd>
+            </div>
+            <div class="dino-level-metric">
+              <dt title="${esc(t("dinoHelpOpenClasses"))}">${isEn()?"Classes using Dino":"使用课堂"}</dt>
+              <dd><span class="dino-level-number">${open.classes.toLocaleString(isEn()?"en-US":"zh-CN")}</span><span class="dino-level-unit">${isEn()?"classes":"节"}</span></dd>
+            </div>
+          </dl>
+        </article>`;
       }).join("")}
     </div>
     ${tableHTML(
