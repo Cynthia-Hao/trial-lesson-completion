@@ -19187,10 +19187,10 @@ dinoHelpFeedback:"问题反馈",
 dinoHelpClicks:"点击量",
 dinoHelpUsers:"用户量",
 dinoHelpClasses:"课堂量",
-dinoHelpCell:"{clicks}次 （{users}人 · {classes}节课）",
+dinoHelpCell:"{clicks}次 （{users}人 · {classes}节课 · 占整体开课{share}）",
 dinoHelpTotal:"合计 · 开课{n}节",
 dinoHelpLevel:"{level} {name} · 开课{n}节",
-dinoHelpShare:"占开课",
+dinoHelpShare:"占整体开课节数",
 dinoHelpOpenClicks:"Dino助手入口点击量（次）",
 dinoHelpOpenUsers:"使用Dino助手用户量（人）",
 dinoHelpOpenClasses:"使用Dino助手的课堂（节）",
@@ -19499,13 +19499,13 @@ dinoHelpFeedback:"Feedback",
 dinoHelpClicks:"Clicks",
 dinoHelpUsers:"Users",
 dinoHelpClasses:"Classes",
-dinoHelpCell:"{clicks} clicks ({users} users · {classes} classes)",
+dinoHelpCell:"{clicks} clicks ({users} users · {classes} classes · {share} of starts)",
 dinoHelpTotal:"Total · {n} starts",
 dinoHelpLevel:"{level} {name} · {n} starts",
-dinoHelpShare:"Share of starts",
-dinoHelpOpenClicks:"Dino helper entry clicks",
-dinoHelpOpenUsers:"Users who used Dino helper",
-dinoHelpOpenClasses:"Classes that used Dino helper",
+dinoHelpShare:"Share of all starts",
+dinoHelpOpenClicks:"Dino helper entry clicks (times)",
+dinoHelpOpenUsers:"Users who used Dino helper (people)",
+dinoHelpOpenClasses:"Classes that used Dino helper (classes)",
 dinoHelpAsked:"Asked Dino",
 dinoHelpNotAsked:"Did not ask",
 dinoHelpAskedRate:"Asked-Dino completion",
@@ -20981,7 +20981,12 @@ function renderDinoHelpView(ctx){
     );
   }
   const started = scoped.length;
-  const usageCell = pack => t("dinoHelpCell", {clicks: pack.clicks, users: pack.users, classes: pack.classes});
+  const usageCell = (pack, denom) => t("dinoHelpCell", {
+    clicks: pack.clicks,
+    users: pack.users,
+    classes: pack.classes,
+    share: helpShare(pack.classes, denom),
+  });
   const nav = [];
   const sectionOrder = [];
   const sections = {};
@@ -21011,16 +21016,16 @@ function renderDinoHelpView(ctx){
     ${tableHTML(
       ["", t("dinoHelpOpen"), t("dinoHelpNext"), t("dinoHelpAsk"), t("dinoHelpFeedback")],
       [
-        [t("dinoHelpTotal", {n: started}), usageCell(overall.open), usageCell(overall.next), usageCell(overall.ask), usageCell(overall.feedback)],
+        [t("dinoHelpTotal", {n: started}), usageCell(overall.open, started), usageCell(overall.next, started), usageCell(overall.ask, started), usageCell(overall.feedback, started)],
         ...LEVELS.filter(level=>!selectedLevel || level.level===selectedLevel).map(level=>{
           const rows = scoped.filter(row=>row.level===level.level);
           const pack = byLevel[level.level];
           return [
             t("dinoHelpLevel", {level: level.label, name: displayLessonName(level.name), n: rows.length}),
-            usageCell(pack.open),
-            usageCell(pack.next),
-            usageCell(pack.ask),
-            usageCell(pack.feedback),
+            usageCell(pack.open, rows.length),
+            usageCell(pack.next, rows.length),
+            usageCell(pack.ask, rows.length),
+            usageCell(pack.feedback, rows.length),
           ];
         }),
       ]
