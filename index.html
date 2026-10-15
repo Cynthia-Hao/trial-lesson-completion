@@ -492,6 +492,21 @@ body>footer a {text-decoration:none;border-bottom:1px solid #bac9df;padding-bott
   .table-wrap {max-height:none}
 }
 
+
+/* Feedback counts by level, within the existing filtered recording sample. */
+.feedback-theme-levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:450px;margin:10px 0 11px}
+.feedback-theme-level{--level-color:#3566bd;--level-tint:#f1f5fd;display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:7px 10px;border:1px solid #e7ecf3;border-radius:7px;background:var(--level-tint);min-width:0}
+.feedback-theme-level[data-level="2"]{--level-color:#16806d;--level-tint:#f0f8f5}
+.feedback-theme-level[data-level="3"]{--level-color:#7a59b5;--level-tint:#f6f3fb}
+.feedback-theme-level[data-level="4"]{--level-color:#a16c25;--level-tint:#fcf7ef}
+.feedback-theme-level dt{font-size:11px;font-weight:600;line-height:1.4;color:var(--level-color)}
+.feedback-theme-level dd{display:flex;align-items:baseline;gap:3px;margin:0;white-space:nowrap;font-variant-numeric:tabular-nums;color:#41546a}
+.feedback-theme-level dd strong{font-size:14px;font-weight:600;line-height:1.4}
+.feedback-theme-level dd span{font-size:10px;color:#809086}
+.feedback-theme-level.is-zero{background:#fafbfc;border-color:#edf0f4}
+.feedback-theme-level.is-zero dt,.feedback-theme-level.is-zero dd{color:#8b96a5}
+@media(max-width:580px){.feedback-theme-levels{gap:6px}.feedback-theme-level{padding:6px 7px;gap:4px}.feedback-theme-level dt{font-size:10px}.feedback-theme-level dd strong{font-size:13px}.feedback-theme-level dd span{font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -21499,12 +21514,18 @@ function feedbackCubeView(data, ui){
   const selected = facts.filter(fact=>keys.every(key=>filters[key]===all || fact[key]===filters[key]));
   const sums = {recordings:0,issue:0,nonissue:0,unresolved:0};
   const themes = new Map();
+  const themeLevels = new Map();
   const dimension = keys.includes(state.breakdown) ? state.breakdown : "country";
   const grouped = new Map();
   for(const fact of selected){
     const kind = categories.get(fact.category).kind;
     sums.recordings+=fact.count; sums[kind]+=fact.count;
-    if(kind==="issue") themes.set(fact.category,(themes.get(fact.category)||0)+fact.count);
+    if(kind==="issue"){
+      themes.set(fact.category,(themes.get(fact.category)||0)+fact.count);
+      if(!themeLevels.has(fact.category)) themeLevels.set(fact.category,{"1":0,"2":0,"3":0,"4":0});
+      const levelCounts=themeLevels.get(fact.category);
+      levelCounts[fact.level]+=fact.count;
+    }
     if(!grouped.has(fact[dimension])) grouped.set(fact[dimension],{key:fact[dimension],recordings:0,issue:0,nonissue:0,unresolved:0,themes:new Map()});
     const row=grouped.get(fact[dimension]);
     row.recordings+=fact.count; row[kind]+=fact.count;
@@ -21530,7 +21551,7 @@ function feedbackCubeView(data, ui){
   const examples=array(d.examples).filter(item=>!active || keys.every(key=>
     filters[key]===all || (item.dimensions && Object.prototype.hasOwnProperty.call(item.dimensions,key) && canonical(item.dimensions[key])===filters[key])
   ));
-  return {ready,invalid,keys,all,unknown,filters,active,options,definitions,categories,sums,themes,dimension,rows,examples};
+  return {ready,invalid,keys,all,unknown,filters,active,options,definitions,categories,sums,themes,themeLevels,dimension,rows,examples};
 }
 
 function renderFeedbackAnalysis(data, ui){
@@ -21563,7 +21584,12 @@ function renderFeedbackAnalysis(data, ui){
     `<div class="feedback-theme-list">${sortThemes(view.themes).map(([key,count])=>{
       const category=view.categories.get(key);
       const share=count/view.sums.recordings*100;
-      return `<div><div class="feedback-theme-label"><strong>${text(category.label)}</strong><span class="feedback-theme-value">${number(count)}<small>${share.toFixed(1)}%</small></span></div><div class="feedback-track" aria-hidden="true"><span style="width:${share.toFixed(4)}%"></span></div>${local(category.description)?`<p class="feedback-theme-description">${text(category.description)}</p>`:""}</div>`;
+      const levelCounts=view.themeLevels.get(key);
+      const levelHtml=`<dl class="feedback-theme-levels" aria-label="${words("各 Level 反馈条数","Feedback counts by level")}">${["1","2","3","4"].map(level=>{
+        const levelCount=levelCounts[level];
+        return `<div class="feedback-theme-level${levelCount===0?" is-zero":""}" data-level="${level}"><dt>L${level}</dt><dd><strong>${number(levelCount)}</strong><span>${words("条","")}</span></dd></div>`;
+      }).join("")}</dl>`;
+      return `<div><div class="feedback-theme-label"><strong>${text(category.label)}</strong><span class="feedback-theme-value">${number(count)}<small>${share.toFixed(1)}%</small></span></div>${levelHtml}<div class="feedback-track" aria-hidden="true"><span style="width:${share.toFixed(4)}%"></span></div>${local(category.description)?`<p class="feedback-theme-description">${text(category.description)}</p>`:""}</div>`;
     }).join("")}</div>`;
   const insights=view.active?[]:array(d.insights);
   const insightHtml=insights.length?`<div class="feedback-panel"><h3>${words("优先改进什么","Suggested priorities")}</h3><p class="feedback-description">${words("基于全部纳入的 L1–L4 体验课录音。","Based on all included L1–L4 trial recordings.")}</p><div class="feedback-insights">${insights.map(item=>`<article class="feedback-insight"><h4>${text(item.title)}</h4><p>${text(item.evidence)}</p>${local(item.action)?`<p class="feedback-action">${text(item.action)}</p>`:""}</article>`).join("")}</div></div>`:"";
@@ -21591,7 +21617,7 @@ function renderFeedbackAnalysis(data, ui){
       ${metric(words("未表达具体问题","No specific issue stated"),view.sums.nonissue,words("内容可辨，但未描述具体问题","Intelligible speech without a specific issue"))}
       ${metric(words("内容待确认","Unresolved content"),view.sums.unresolved,words("静音、听辨不清或需复核","Silent, unclear or needs review"))}
     </dl>
-    <div class="feedback-columns ${insightHtml?"":"is-single"}"><div class="feedback-panel"><h3>${words("问题分布","Issue distribution")}</h3><p class="feedback-description">${words("每条反馈仅归入一个主要类别；占比以当前选中的全部录音为分母。","Each recording has one main category. Shares use all recordings currently selected.")}</p>${themeHtml}</div>${insightHtml}</div>
+    <div class="feedback-columns ${insightHtml?"":"is-single"}"><div class="feedback-panel"><h3>${words("问题分布","Issue distribution")}</h3><p class="feedback-description">${words("每条反馈仅归入一个主要类别；占比以当前选中的全部录音为分母。条形图上方展示当前筛选下各 Level 的反馈条数。","Each recording has one main category. Shares use all recordings currently selected. Counts by level above each bar reflect the current filters.")}</p>${themeHtml}</div>${insightHtml}</div>
     <div class="feedback-breakdown"><div class="feedback-breakdown-heading"><h3>${words("哪些样本反馈了问题","Issues by sample group")}</h3><label>${words("分组","Group by")}<select data-feedback-filter="breakdown" ${view.ready?"":"disabled"}>${view.keys.map(key=>`<option value="${key}" ${view.dimension===key?"selected":""}>${h(labels[key])}</option>`).join("")}</select></label></div><p class="feedback-description">${words("按当前筛选样本分组；问题与待确认占比均以该行全部录音为分母。比较时请一并查看待确认比例。","Groups use the current filtered sample. Both issue and unresolved shares use all recordings in that row. Consider unresolved coverage when comparing groups.")}</p>${breakdownHtml}</div>
     ${examplesHtml}
     <details class="feedback-method"><summary>${words("统计口径","How to read these numbers")}</summary><p>${words("统计仅包含已匹配的 L1–L4 体验课反馈。这里的比例反映录音样本，不代表所有上课用户的问题发生率。未填写年龄或英文能力的反馈保留为未知，不从分母中删除。","Only feedback matched to L1–L4 trial lessons is included. Shares describe the recording sample, not issue incidence among all learners. Missing age or ability remains in an unknown group and stays in the denominator.")}</p>${array(d.limitations).map(item=>`<p>${text(item)}</p>`).join("")}</details>
