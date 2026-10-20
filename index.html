@@ -21159,7 +21159,7 @@ secAnalysis:"完课率分析",
 secFocus:"马来 / 越南 / 韩国 / 沙特 / 日本 · 分 Level 完课率",
 baseline50:"50%",
 secProfile:"核心国家 · 年龄 × 英文能力",
-secFunnel:"Template触达漏斗",
+secFunnel:"Template触达漏斗（{countries}）",
 secVersion:"版本对比 · V1 vs V2",
 secAgeLevel:"年龄 × 级别 × 完课率（{countries}）",
 secDailyHour:"分小时完课率",
@@ -21473,7 +21473,7 @@ secAnalysis:"Completion analysis",
 secFocus:"Malaysia / Vietnam / Korea / Saudi / Japan · completion by level",
 baseline50:"50%",
 secProfile:"Core countries · age × English ability",
-secFunnel:"Template reach funnel",
+secFunnel:"Template reach funnel ({countries})",
 secVersion:"Version comparison · V1 vs V2",
 secAgeLevel:"Age × level × completion ({countries})",
 secDailyHour:"Hourly completion",
@@ -24139,8 +24139,8 @@ function render(){
         ...funnelVersions.filter(ver=>ver==="2"),
       ]
     : funnelVersions;
-  addSec("sec-funnel", t("secFunnel"), `
-    <h2>${t("secFunnel")}</h2>
+  addSec("sec-funnel", t("secFunnel", {countries: segmentLabel}), `
+    <h2>${esc(t("secFunnel", {countries: segmentLabel}))}</h2>
     <p class="tiny">${t("funnelCaption")} ${esc(caption)}</p>
     <div class="sec-head" style="margin-bottom:10px">
       <div class="pills">
