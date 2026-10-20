@@ -21161,7 +21161,7 @@ baseline50:"50%",
 secProfile:"核心国家 · 年龄 × 英文能力",
 secFunnel:"Template触达漏斗",
 secVersion:"版本对比 · V1 vs V2",
-secAgeLevel:"年龄 × 级别 × 完课率",
+secAgeLevel:"年龄 × 级别 × 完课率（{countries}）",
 secDailyHour:"分小时完课率",
 secDailyDay:"分日完课率",
 secDailyCountryHour:"分小时 × 国家段",
@@ -21475,7 +21475,7 @@ baseline50:"50%",
 secProfile:"Core countries · age × English ability",
 secFunnel:"Template reach funnel",
 secVersion:"Version comparison · V1 vs V2",
-secAgeLevel:"Age × level × completion",
+secAgeLevel:"Age × level × completion ({countries})",
 secDailyHour:"Hourly completion",
 secDailyDay:"Daily completion",
 secDailyCountryHour:"Hourly × country",
@@ -24211,8 +24211,8 @@ function render(){
     }
 
     if(allInWindow.length){
-      addSec("sec-age-level", t("secAgeLevel"), `
-        <h2>${t("secAgeLevel")}</h2>
+      addSec("sec-age-level", t("secAgeLevel", {countries: segmentLabel}), `
+        <h2>${esc(t("secAgeLevel", {countries: segmentLabel}))}</h2>
         ${tableHTML(
           [t("ageCol"),"L1","L2","L3","L4"],
           AGE_LEVEL_YEARS.map(age=>[
